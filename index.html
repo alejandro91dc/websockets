@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <script type="text/javascript">
+         var sock = null;
+         var ellog = null;
+         
+         function newFolder(name,privilege,path) {
+         	this.type = "newF";
+         	this.name = name;
+         	this.privilege = privilege;
+         	this.path = path;
+         };
+         
+         function delFolder(name,privilege,path) {
+         	this.type = "delF";
+         	this.name = name;
+         	this.privilege = privilege;
+         	this.path = path;
+         };
+         
+         window.onload = function() {
+            var wsuri;
+            ellog = document.getElementById('log');
+            if (window.location.protocol === "file:") {
+               wsuri = "wss://10.10.2.99:9000";
+            } else {
+               wsuri = "wss://" + window.location.hostname + ":9000";
+            }
+            if ("WebSocket" in window) {
+               sock = new WebSocket(wsuri);
+            } else if ("MozWebSocket" in window) {
+               sock = new MozWebSocket(wsuri);
+            } else {
+               log("Browser does not support WebSocket!");
+            }
+            if (sock) {
+               sock.onopen = function() {
+                  log("Connected to " + wsuri);
+               }
+               sock.onclose = function(e) {
+                  log("Connection closed (wasClean = " + e.wasClean + ", code = " + e.code + ", reason = '" + e.reason + "')" + sock);
+               }
+               sock.onmessage = function(e) {
+                  log("Got echo: " + e.data);
+               }
+            }
+         };
+         
+		 function createFolder() {
+		    var name = document.getElementById('name').value;
+		    var priv = document.getElementById('priv').value;
+		    var path = document.getElementById('path').value;
+		   
+		 	carpeta = new newFolder(name,priv,path);
+		 	var json = JSON.stringify(carpeta, null, 2);
+		 	sock.send(json);
+		 };
+		 
+		 function deleteFolder() {
+		    var name = document.getElementById('name').value;
+		    var priv = document.getElementById('priv').value;
+		    var path = document.getElementById('path').value;
+		   
+		 	carpeta = new delFolder(name,priv,path);
+		 	var json = JSON.stringify(carpeta, null, 2);
+		 	sock.send(json);
+		 };
+		        
+         function send() {
+            var msg = document.getElementById('message').value;
+            var batchsize = parseInt(document.getElementById('batch').value);
+            if (sock) {
+               for (var i = 0; i < batchsize; ++i) {
+                  sock.send(msg);
+               }
+               log("Sent " + batchsize + "x : " + msg);
+            } else {
+               log("Not connected.");
+            }
+         };
+         function log(m) {
+            document.getElementById('log').innerHTML += m + '\n';
+         };
+      </script>
+   </head>
+   <body>
+      <h1>Autobahn Secure WebSocket Echo Test</h1>
+      <noscript>You must enable JavaScript</noscript>
+      <center> Creacion de recurso compartido en Samba</center>
+      <form>
+         <p>Nombre del recurso compartido: <input id="name" type="text" size="50" maxlength="50" placeholder="Introduce un nombre para el recurso compartido"></p><br>
+         <p> Ruta: <input id="path" type="text" size="50" maxlength="50" placeholder="Introduce la ruta del directorio"></p><br>
+         <p> Privilegios: <input id="priv" type="text" size="50" maxlength="50" placeholder="Introduce los privilegios (yes/no)"></p><br>
+         
+         </p>
+      </form>
+      <button onclick='deleteFolder();'>Eliminar recurso</button>
+      <button onclick='createFolder();'>Crear recurso</button>
+      <pre id="log" style="height: 20em; overflow-y: scroll; background-color: #faa;"></pre>
+   </body>
+</html>
